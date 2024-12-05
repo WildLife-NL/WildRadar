@@ -3,6 +3,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:wild_radar/services/api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 
 // Beginpagina van de app - Stateless widget die de basis thema's instelt
 class MappingPage extends StatelessWidget {
@@ -22,7 +24,6 @@ class MappingPage extends StatelessWidget {
 // Hoofd navigatie voorbeeld - Stateful widget voor dynamische pagina-interactie
 class NavigationExample extends StatefulWidget {
 
-  
   const NavigationExample({super.key});
 
   @override
@@ -30,6 +31,9 @@ class NavigationExample extends StatefulWidget {
 }
 
 class _NavigationExampleState extends State<NavigationExample> {
+
+  // Bool om van map te kunnen switchen
+  bool _isSatelliteView = false;
 
   // API service voor gegevensinvoer
   final ApiService _apiService = ApiService();
@@ -39,7 +43,7 @@ class _NavigationExampleState extends State<NavigationExample> {
   // Bijhouden van de huidige pagina-index voor navigatie
   int currentPageIndex = 0;
 
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   List<dynamic> _filteredData = [];
 
   @override
@@ -228,43 +232,68 @@ class _NavigationExampleState extends State<NavigationExample> {
       ),
       children: [
         TileLayer(
-          urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+          urlTemplate: _isSatelliteView 
+          ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" 
+          : "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+          tileProvider: CancellableNetworkTileProvider(),
+          userAgentPackageName: 'com.example.app',
         ),
 
-        MarkerLayer(
-          markers: displayData.map((item) {
-            double lat = item['location']['latitude'] ?? 52.370216;
-            double lon = item['location']['longitude'] ?? 4.895168;
+          MarkerClusterLayerWidget(
+            options: MarkerClusterLayerOptions(
+              maxClusterRadius: 120,
+              size: Size(50, 50),
+              markers: displayData.map((item) {
+                double lat = item['location']['latitude'] ?? 52.370216;
+                double lon = item['location']['longitude'] ?? 4.895168;
 
-            return Marker(
-              point: LatLng(lat, lon),
-              width: 50,
-              height: 50,
-              child: GestureDetector(
-                onTap: () {
-                  _showMarkerDetails(item);
-                },
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.pets,
-                      color: Colors.green,
-                      size: 30,
-                    ),
-                    FittedBox(
-                      child: Text(
-                        item['species']['commonName'] ?? 'onbekend',
-                        style: TextStyle(
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold
+                return Marker(
+                  point: LatLng(lat, lon),
+                  width: 50,
+                  height: 50,
+                  child: GestureDetector(
+                    onTap: () {
+                      _showMarkerDetails(item);
+                    },
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.pets,
+                          color: Colors.green,
+                          size: 30,
                         ),
+                        FittedBox(
+                          child: Text(
+                            item['species']['commonName'] ?? 'onbekend',
+                            style: TextStyle(
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+              builder: (context, markers) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.7),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      markers.length.toString(),
+                      style: TextStyle(
+                        color: Colors.white, 
+                        fontWeight: FontWeight.bold
                       ),
                     ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
+                  ),
+                );
+              },
+            ),
           ),
 
           RichAttributionWidget(
@@ -272,6 +301,10 @@ class _NavigationExampleState extends State<NavigationExample> {
               TextSourceAttribution(
                 'OpenStreetMap contributors',
                 onTap: () => launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
+              ),
+              TextSourceAttribution(
+                'Sources: Esri, DigitalGlobe, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and the GIS User Community',
+                onTap: () => launchUrl(Uri.parse('https://www.esri.com/')),
               )
             ],
           ),
@@ -287,23 +320,37 @@ class _NavigationExampleState extends State<NavigationExample> {
           child: Row(
             children: [
               // Card 1: Animals
-              SizedBox(
-                width: MediaQuery.of(context).size.width * 0.10 * 0.9, // 25% of screen width, slightly narrower
-                child: Card(
-                  elevation: 4,
+            SizedBox(
+              width: MediaQuery.of(context).size.width * 0.10 * 0.9,
+              child: Card(
+                elevation: 4,
+                color: _isSatelliteView ? Colors.green.shade100 : null, // Optional visual indication
+                child: InkWell( // Use InkWell for tap effects
+                  onTap: () {
+                    setState(() {
+                      _isSatelliteView = !_isSatelliteView;
+                    });
+                  },
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.map, color: Colors.green, size: 20),
-                        Text('Kaart', style: TextStyle(fontSize: 16)),
-                        // Text('${_data?.length ?? 0}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        Icon(
+                          _isSatelliteView ? Icons.satellite : Icons.map, 
+                          color: Colors.green, 
+                          size: 20
+                        ),
+                        Text(
+                          _isSatelliteView ? 'Satelliet' : 'Kaart', 
+                          style: TextStyle(fontSize: 16)
+                        ),
                       ],
                     ),
                   ),
                 ),
               ),
+            ),
 
               // Card 2: Locations
               SizedBox(
