@@ -5,6 +5,7 @@ import 'package:wild_radar/services/api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
+import 'dart:math' as math;
 
 // Beginpagina van de app - Stateless widget die de basis thema's instelt
 class MappingPage extends StatelessWidget {
@@ -20,6 +21,20 @@ class MappingPage extends StatelessWidget {
   }
 }
 
+// New class
+  // New class to represent an area of interest
+  class AreaOfInterest {
+    LatLng location;
+    double radius;
+    String id;
+
+    AreaOfInterest({
+      required this.location, 
+      this.radius = 1.0,
+      String? id
+    }) : id = id ?? DateTime.now().millisecondsSinceEpoch.toString();
+  }
+
 
 // Hoofd navigatie voorbeeld - Stateful widget voor dynamische pagina-interactie
 class NavigationExample extends StatefulWidget {
@@ -31,6 +46,23 @@ class NavigationExample extends StatefulWidget {
 }
 
 class _NavigationExampleState extends State<NavigationExample> {
+
+final MapController _mapController = MapController();
+
+
+  //bereken de intesiteit van de cirkel
+double _calculateScaledRadius(double radiusKm, BuildContext context) {
+  // Get the current zoom level of the map
+  double currentzoom = 10; // You might need to extract this from your MapController
+  
+  // Scaling factor - adjust these values to fine-tune the scaling
+  double scaleFactor = 1000 * math.pow(2, (7.5 - currentzoom)).toDouble();
+  
+  return radiusKm * scaleFactor;
+}
+
+  List<AreaOfInterest> _areasOfInterest = [];
+
 
   // Bool om van map te kunnen switchen
   bool _isSatelliteView = false;
@@ -107,6 +139,117 @@ class _NavigationExampleState extends State<NavigationExample> {
   );
 }
 
+
+  // Method to handle map taps
+void _onMapTapped(TapPosition tapPosition, LatLng point) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      double initialRadius = 1.0;
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text('Plaats een marker'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Wilt u een marker plaatsen op deze locatie?'),
+                Slider(
+                  value: initialRadius,
+                  min: 0.1,
+                  max: 10.0,
+                  divisions: 100,
+                  label: '${initialRadius.toStringAsFixed(1)} km',
+                  onChanged: (double value) {
+                    setState(() {
+                      initialRadius = value;
+                    });
+                  },
+                ),
+                Text('Straal: ${initialRadius.toStringAsFixed(1)} km'),
+              ],
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: Text('Annuleren'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              TextButton(
+                child: Text('Toevoegen'),
+                 onPressed: () {
+                  // Ensure the main widget state is updated
+                  this.setState(() {
+                    _areasOfInterest.add(AreaOfInterest(
+                      location: point, 
+                      radius: initialRadius
+                    ));
+                  });
+                  Navigator.of(context).pop();
+                },
+              )
+            ],
+          );
+        }
+      );
+    }
+  );
+}
+
+void _adjustAreaRadius(AreaOfInterest area) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      double currentRadius = area.radius;
+      return AlertDialog(
+        title: Text('Pas Straal Aan'),
+        content: StatefulBuilder(
+          builder: (context, setState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Slider(
+                  value: currentRadius,
+                  min: 0.1,
+                  max: 10.0,
+                  divisions: 100,
+                  label: '${currentRadius.toStringAsFixed(1)} km',
+                  onChanged: (double value) {
+                    setState(() {
+                      currentRadius = value;
+                    });
+                  },
+                ),
+                Text('Nieuwe straal: ${currentRadius.toStringAsFixed(1)} km'),
+              ],
+            );
+          },
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Verwijderen'),
+            onPressed: () {
+              setState(() {
+                _areasOfInterest.removeWhere((a) => a.id == area.id);
+              });
+              Navigator.of(context).pop();
+            },
+          ),
+          TextButton(
+            child: Text('Bevestigen'),
+            onPressed: () {
+              setState(() {
+                area.radius = currentRadius;
+              });
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
   @override
   Widget build(BuildContext context) {
     // final ThemeData theme = Theme.of(context);
@@ -218,17 +361,19 @@ class _NavigationExampleState extends State<NavigationExample> {
     return Stack(
       children: [
         FlutterMap(
-      options: MapOptions(
-        initialCenter: LatLng(52.370216, 4.895168),
-        initialZoom: 7.5,
-        minZoom: 7.5,
-        maxZoom: 18.0,
-        cameraConstraint: CameraConstraint.containCenter(
-          bounds: LatLngBounds(
+          mapController: _mapController,
+        options: MapOptions(
+          initialCenter: LatLng(52.370216, 4.895168),
+          initialZoom: 7.5,
+          minZoom: 7.5,
+          maxZoom: 18.0,
+          cameraConstraint: CameraConstraint.containCenter(
+            bounds: LatLngBounds(
             LatLng(50.5, 3.5), 
             LatLng(53.8, 7.2),
             ),
         ),
+        onTap: _onMapTapped,
       ),
       children: [
         TileLayer(
@@ -243,7 +388,8 @@ class _NavigationExampleState extends State<NavigationExample> {
             options: MarkerClusterLayerOptions(
               maxClusterRadius: 120,
               size: Size(50, 50),
-              markers: displayData.map((item) {
+              markers: [ 
+              ...displayData.map((item) {
                 double lat = item['location']['latitude'] ?? 52.370216;
                 double lon = item['location']['longitude'] ?? 4.895168;
 
@@ -276,6 +422,24 @@ class _NavigationExampleState extends State<NavigationExample> {
                   ),
                 );
               }).toList(),
+
+              //Area of interest cluster
+              ..._areasOfInterest.map((area) =>
+                Marker(
+                  point: area.location,
+                  width: 50,
+                  height: 50,
+                  child: GestureDetector(
+                    onTap: () => _adjustAreaRadius(area),
+                    child: Icon(
+                      Icons.location_pin,
+                      color: Colors.red,
+                      size: 50,
+                    ),
+                  ),
+                )
+              ).toList(),
+              ],
               builder: (context, markers) {
                 return Container(
                   decoration: BoxDecoration(
@@ -296,6 +460,35 @@ class _NavigationExampleState extends State<NavigationExample> {
             ),
           ),
 
+          CircleLayer(
+            circles: _areasOfInterest.map((area) {
+              return CircleMarker(
+                point: area.location,
+                radius: _calculateScaledRadius(area.radius, context), // convert km to meters
+                color: Colors.blue.withOpacity(0.2),
+                borderColor: Colors.blue,
+                borderStrokeWidth: 2,
+              );
+            }).toList(),
+          ),
+
+          MarkerLayer(
+              markers: _areasOfInterest.map((area) =>
+                Marker(
+                  point: area.location,
+                  width: 50,
+                  height: 50,
+                  child: GestureDetector(
+                    onTap: () => _adjustAreaRadius(area),
+                    child: Icon(
+                      Icons.location_pin,
+                      color: Colors.red,
+                      size: 50,
+                    ),
+                  ),
+                )
+              ).toList(),
+            ),
           RichAttributionWidget(
             attributions: [
               TextSourceAttribution(
@@ -353,6 +546,7 @@ class _NavigationExampleState extends State<NavigationExample> {
             ),
 
               // Card 2: Locations
+              if(_areasOfInterest.isNotEmpty)
               SizedBox(
                 width: MediaQuery.of(context).size.width * 0.10 * 0.9,
                 child: Card(
@@ -363,8 +557,16 @@ class _NavigationExampleState extends State<NavigationExample> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.location_on, color: Colors.blue, size: 20),
-                        Text('Locaties', style: TextStyle(fontSize: 16)),
+                        Text('Gebieden van interesse: ${_areasOfInterest.length}'),
                         // Text('${_data?.length ?? 0}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _areasOfInterest.clear();
+                            });
+                          },
+                          child: Text('Wis alle gebieden'),
+                        ),
                       ],
                     ),
                   ),
@@ -391,6 +593,7 @@ class _NavigationExampleState extends State<NavigationExample> {
               ),
 
               // Card 4: Details
+              
               SizedBox(
                 width: MediaQuery.of(context).size.width * 0.10 * 0.9,
                 child: Card(
@@ -432,6 +635,35 @@ class _NavigationExampleState extends State<NavigationExample> {
           ),
         ),
       ),
+          Positioned(
+      top: 20, // Adjust positioning as needed
+      right: 16,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: StreamBuilder<double>(
+            stream: _mapController.mapEventStream
+                .map((event) => event.camera.zoom),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) return Text('Loading...');
+              
+              double zoom = snapshot.data!;
+              
+              // Calculate approximate meters per pixel at this zoom level
+              double metersPerPixel = 156543.03392 * math.cos(52.370216 * math.pi / 180) / math.pow(2, zoom);
+              
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Zoom Level: ${zoom.toStringAsFixed(2)}'),
+                  Text('Meters per Pixel: ${metersPerPixel.toStringAsFixed(2)}'),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    ),
     ],
   );
 } // end of widget
