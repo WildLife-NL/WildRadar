@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wild_radar/pages/auth_page.dart';
 import 'package:wild_radar/pages/mapping_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -21,7 +22,7 @@ class _LoginPageState extends State<LoginPage> {
       print('Email: $email');
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => MappingPage()),
+        MaterialPageRoute(builder: (context) => AuthPage()),
       );
     } else {
       print('niet ingelogd!');

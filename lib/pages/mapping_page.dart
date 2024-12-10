@@ -47,17 +47,22 @@ class NavigationExample extends StatefulWidget {
 
 class _NavigationExampleState extends State<NavigationExample> {
 
+
+double _defaultzoom = 7.5;
+
+
 final MapController _mapController = MapController();
 
 
   //bereken de intesiteit van de cirkel
 double _calculateScaledRadius(double radiusKm, BuildContext context) {
   // Get the current zoom level of the map
-  double currentzoom = 10; // You might need to extract this from your MapController
-  
+
+  double currentzoom = _mapController.camera.zoom; // You might need to extract this from your MapController
+  print(currentzoom);
   // Scaling factor - adjust these values to fine-tune the scaling
-  double scaleFactor = 1000 * math.pow(2, (7.5 - currentzoom)).toDouble();
-  
+  final zoomFactor = (currentzoom - _defaultzoom) / 2;
+  double scaleFactor = 1000 * math.pow(2, zoomFactor).toDouble();
   return radiusKm * scaleFactor;
 }
 
@@ -183,8 +188,9 @@ void _onMapTapped(TapPosition tapPosition, LatLng point) {
                   this.setState(() {
                     _areasOfInterest.add(AreaOfInterest(
                       location: point, 
-                      radius: initialRadius
+                      radius: initialRadius * 1000
                     ));
+                    print('initiele radius: ${initialRadius}');
                   });
                   Navigator.of(context).pop();
                 },
@@ -201,7 +207,7 @@ void _adjustAreaRadius(AreaOfInterest area) {
   showDialog(
     context: context,
     builder: (BuildContext context) {
-      double currentRadius = area.radius;
+      double currentRadius = area.radius / 1000;
       return AlertDialog(
         title: Text('Pas Straal Aan'),
         content: StatefulBuilder(
@@ -240,7 +246,8 @@ void _adjustAreaRadius(AreaOfInterest area) {
             child: Text('Bevestigen'),
             onPressed: () {
               setState(() {
-                area.radius = currentRadius;
+                area.radius = currentRadius * 1000;
+                print('current radius:${currentRadius}');
               });
               Navigator.of(context).pop();
             },
@@ -373,6 +380,13 @@ void _adjustAreaRadius(AreaOfInterest area) {
             LatLng(53.8, 7.2),
             ),
         ),
+        onPositionChanged: (position, bool hasGesture) {
+          // Recalculate radius when the zoom level changes
+          if (hasGesture) {
+            // _updateRadius(position.zoom);
+            print('zoom = ${position.zoom}');
+          }
+        },
         onTap: _onMapTapped,
       ),
       children: [
@@ -464,14 +478,17 @@ void _adjustAreaRadius(AreaOfInterest area) {
             circles: _areasOfInterest.map((area) {
               return CircleMarker(
                 point: area.location,
-                radius: _calculateScaledRadius(area.radius, context), // convert km to meters
+                // point: LatLng(52.2677, 5.1689),
+                //radius: _calculateScaledRadius(area.radius, context), // convert km to meters
+                useRadiusInMeter: true,
+                radius: area.radius,
                 color: Colors.blue.withOpacity(0.2),
                 borderColor: Colors.blue,
                 borderStrokeWidth: 2,
               );
             }).toList(),
           ),
-
+          
           MarkerLayer(
               markers: _areasOfInterest.map((area) =>
                 Marker(

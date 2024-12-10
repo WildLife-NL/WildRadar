@@ -17,6 +17,10 @@ dependencies:
   http: 1.2.2
   flutter_dotenv: ^5.0.2  
   flutter_map_marker_cluster: ^1.4.0
+  wildlife_api_connection:
+    git:
+      url: https://github.com/WildLife-NL/Wildlife-api-connection.git
+      ref: "94d125c"
 
 dev_dependencies:
   flutter_test:
@@ -31,3 +35,4 @@ flutter:
     - lib/assets/images/edelhert.jpg
     - lib/assets/images/bos.jpg
     - lib/assets/env/.env
+

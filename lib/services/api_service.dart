@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:wildlife_api_connection/auth_api.dart';
 
 class ApiService {
   final String _baseUrl = 'https://wildlifenl-uu-michi011.apps.cl01.cp.its.uu.nl/';  // Pas aan naar jouw basis-URL
@@ -44,7 +45,7 @@ Future<List<dynamic>> fetchAnimalLocations() async {
     if (response.statusCode == 200) {
       return json.decode(response.body);
     } else {
-      throw Exception('Kan geen dieren locaties ophalen');
+      throw Exception('Kan geen dieren locaties ophalen: ${response.statusCode}');
     }
   } catch (e) {
     print('Fetch animal locations error: $e');
