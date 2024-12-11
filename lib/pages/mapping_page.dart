@@ -5,7 +5,6 @@ import 'package:wild_radar/services/api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
-import 'dart:math' as math;
 
 // Beginpagina van de app - Stateless widget die de basis thema's instelt
 class MappingPage extends StatelessWidget {
@@ -48,26 +47,10 @@ class NavigationExample extends StatefulWidget {
 class _NavigationExampleState extends State<NavigationExample> {
 
 
-double _defaultzoom = 7.5;
-
-
 final MapController _mapController = MapController();
 
 
-  //bereken de intesiteit van de cirkel
-double _calculateScaledRadius(double radiusKm, BuildContext context) {
-  // Get the current zoom level of the map
-
-  double currentzoom = _mapController.camera.zoom; // You might need to extract this from your MapController
-  print(currentzoom);
-  // Scaling factor - adjust these values to fine-tune the scaling
-  final zoomFactor = (currentzoom - _defaultzoom) / 2;
-  double scaleFactor = 1000 * math.pow(2, zoomFactor).toDouble();
-  return radiusKm * scaleFactor;
-}
-
   List<AreaOfInterest> _areasOfInterest = [];
-
 
   // Bool om van map te kunnen switchen
   bool _isSatelliteView = false;
@@ -98,20 +81,18 @@ double _calculateScaledRadius(double radiusKm, BuildContext context) {
     });
   }
 
-  void _filterAnimals(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        _filteredData = [];
-      } else {
-        _filteredData = _data?.where((item) {
+void _filterAnimals(String query) {
+  setState(() {
+    _filteredData = query.isEmpty 
+      ? [] 
+      : (_data ?? []).where((item) {
           final commonName = item['species']['commonName']?.toString().toLowerCase() ?? '';
           final name = item['name']?.toString().toLowerCase() ?? '';
           final searchLower = query.toLowerCase();
           return commonName.contains(searchLower) || name.contains(searchLower);
-        }).toList() ?? [];
-      }
-    });
-  }
+        }).toList();
+  });
+}
 
   void _showMarkerDetails(dynamic item) {
   showDialog(
@@ -190,7 +171,6 @@ void _onMapTapped(TapPosition tapPosition, LatLng point) {
                       location: point, 
                       radius: initialRadius * 1000
                     ));
-                    print('initiele radius: ${initialRadius}');
                   });
                   Navigator.of(context).pop();
                 },
@@ -247,7 +227,6 @@ void _adjustAreaRadius(AreaOfInterest area) {
             onPressed: () {
               setState(() {
                 area.radius = currentRadius * 1000;
-                print('current radius:${currentRadius}');
               });
               Navigator.of(context).pop();
             },
@@ -380,13 +359,6 @@ void _adjustAreaRadius(AreaOfInterest area) {
             LatLng(53.8, 7.2),
             ),
         ),
-        onPositionChanged: (position, bool hasGesture) {
-          // Recalculate radius when the zoom level changes
-          if (hasGesture) {
-            // _updateRadius(position.zoom);
-            print('zoom = ${position.zoom}');
-          }
-        },
         onTap: _onMapTapped,
       ),
       children: [
@@ -402,6 +374,7 @@ void _adjustAreaRadius(AreaOfInterest area) {
             options: MarkerClusterLayerOptions(
               maxClusterRadius: 120,
               size: Size(50, 50),
+              disableClusteringAtZoom: 10,
               markers: [ 
               ...displayData.map((item) {
                 double lat = item['location']['latitude'] ?? 52.370216;
@@ -478,8 +451,6 @@ void _adjustAreaRadius(AreaOfInterest area) {
             circles: _areasOfInterest.map((area) {
               return CircleMarker(
                 point: area.location,
-                // point: LatLng(52.2677, 5.1689),
-                //radius: _calculateScaledRadius(area.radius, context), // convert km to meters
                 useRadiusInMeter: true,
                 radius: area.radius,
                 color: Colors.blue.withOpacity(0.2),
@@ -493,14 +464,14 @@ void _adjustAreaRadius(AreaOfInterest area) {
               markers: _areasOfInterest.map((area) =>
                 Marker(
                   point: area.location,
-                  width: 50,
-                  height: 50,
+                  width: 40,
+                  height: 40,
                   child: GestureDetector(
                     onTap: () => _adjustAreaRadius(area),
                     child: Icon(
                       Icons.location_pin,
                       color: Colors.red,
-                      size: 50,
+                      size: 25,
                     ),
                   ),
                 )
@@ -592,7 +563,7 @@ void _adjustAreaRadius(AreaOfInterest area) {
 
               // Card 3: Last Update
               SizedBox(
-                width: MediaQuery.of(context).size.width * 0.10 * 0.9,
+                width: MediaQuery.of(context).size.width * 0.10 * 1,
                 child: Card(
                   elevation: 4,
                   child: Padding(
@@ -612,7 +583,7 @@ void _adjustAreaRadius(AreaOfInterest area) {
               // Card 4: Details
               
               SizedBox(
-                width: MediaQuery.of(context).size.width * 0.10 * 0.9,
+                width: MediaQuery.of(context).size.width * 0.15 * 0.9,
                 child: Card(
                   elevation: 4,
                   child: Padding(
@@ -652,35 +623,35 @@ void _adjustAreaRadius(AreaOfInterest area) {
           ),
         ),
       ),
-          Positioned(
-      top: 20, // Adjust positioning as needed
-      right: 16,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: StreamBuilder<double>(
-            stream: _mapController.mapEventStream
-                .map((event) => event.camera.zoom),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) return Text('Loading...');
+    //       Positioned(
+    //   top: 20, // Adjust positioning as needed
+    //   right: 16,
+    //   child: Card(
+    //     child: Padding(
+    //       padding: const EdgeInsets.all(8.0),
+    //       child: StreamBuilder<double>(
+    //         stream: _mapController.mapEventStream
+    //             .map((event) => event.camera.zoom),
+    //         builder: (context, snapshot) {
+    //           if (!snapshot.hasData) return Text('Loading...');
               
-              double zoom = snapshot.data!;
+    //           double zoom = snapshot.data!;
               
-              // Calculate approximate meters per pixel at this zoom level
-              double metersPerPixel = 156543.03392 * math.cos(52.370216 * math.pi / 180) / math.pow(2, zoom);
+    //           // Calculate approximate meters per pixel at this zoom level
+    //           double metersPerPixel = 156543.03392 * math.cos(52.370216 * math.pi / 180) / math.pow(2, zoom);
               
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Zoom Level: ${zoom.toStringAsFixed(2)}'),
-                  Text('Meters per Pixel: ${metersPerPixel.toStringAsFixed(2)}'),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    ),
+    //           return Column(
+    //             crossAxisAlignment: CrossAxisAlignment.start,
+    //             children: [
+    //               Text('Zoom Level: ${zoom.toStringAsFixed(2)}'),
+    //               Text('Meters per Pixel: ${metersPerPixel.toStringAsFixed(2)}'),
+    //             ],
+    //           );
+    //         },
+    //       ),
+    //     ),
+    //   ),
+    // ),
     ],
   );
 } // end of widget
