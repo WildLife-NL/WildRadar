@@ -118,61 +118,65 @@ final MapController _mapController = MapController();
 
 // Add a new method to show animal details
 void _showTrackedAnimalDetails() {
-  showDialog(
+  showModalBottomSheet(
     context: context,
     builder: (BuildContext context) {
       return StatefulBuilder(
         builder: (context, dialogSetState) {
-          return AlertDialog(
-            title: Text('Dier Tracking Details'),
-            content: SingleChildScrollView(
-              child: ListBody(
-                children: <Widget>[
-                  Text('Naam: ${_trackedAnimal!.name}'),
-                  Text('Soort: ${_trackedAnimal!.species}'),
-                  Text('Gemeenschappelijke naam: ${_trackedAnimal!.commonName}'),
-                  SizedBox(height: 10),
-                  Slider(
-                    value: _currentlocationIndex.toDouble(),
-                    min: 0,
-                    max: (_trackedAnimal!.locations.length - 1).toDouble(),
-                    divisions: _trackedAnimal!.locations.length - 1,
-                    label: 'Locatie: ${_currentlocationIndex + 1}',
-                    onChanged: (double value) {
-                      // Use the main widget's setState
-                      setState(() {
-                        _currentlocationIndex = value.toInt();
-                        // Center map to location
-                        _mapController.move(
-                          _trackedAnimal!.locations[_currentlocationIndex],
-                          15.0
-                        );
-                      });
-                      // Update the dialog's local state to refresh the label
-                      dialogSetState(() {});
-                    },
-                  ),
-                  Text(
-                    'Huidige locatie: '
-                    '${_trackedAnimal!.locations[_currentlocationIndex].latitude.toStringAsFixed(4)},'
-                    '${_trackedAnimal!.locations[_currentlocationIndex].longitude.toStringAsFixed(4)}',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                ],
-              ),
+          return Container(
+            padding: EdgeInsets.all(10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'Dier Tracking Details', 
+                  style: TextStyle(
+                    fontSize: 18, 
+                    fontWeight: FontWeight.bold
+                  )
+                ),
+                SizedBox(height: 10),
+                Text('Naam: ${_trackedAnimal!.name}'),
+                Text('Soort: ${_trackedAnimal!.species}'),
+                Text('Gemeenschappelijke naam: ${_trackedAnimal!.commonName}'),
+                SizedBox(height: 10),
+                Slider(
+                  value: _currentlocationIndex.toDouble(),
+                  min: 0,
+                  max: (_trackedAnimal!.locations.length - 1).toDouble(),
+                  divisions: _trackedAnimal!.locations.length - 1,
+                  label: 'Locatie: ${_currentlocationIndex + 1}',
+                  onChanged: (double value) {
+                    // Use the main widget's setState
+                    setState(() {
+                      _currentlocationIndex = value.toInt();
+                      // Center map to location
+                      _mapController.move(
+                        _trackedAnimal!.locations[_currentlocationIndex],
+                        15.0
+                      );
+                    });
+                    // Update the dialog's local state to refresh the label
+                    dialogSetState(() {});
+                  },
+                ),
+                Text(
+                  'Huidige locatie: '
+                  '${_trackedAnimal!.locations[_currentlocationIndex].latitude.toStringAsFixed(4)},'
+                  '${_trackedAnimal!.locations[_currentlocationIndex].longitude.toStringAsFixed(4)}',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ],
             ),
-            actions: <Widget>[
-              TextButton(
-                child: Text('Sluiten'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
           );
         },
       );
     },
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    isScrollControlled: true,
   );
 }
 
@@ -564,11 +568,6 @@ void _adjustAreaRadius(AreaOfInterest area) {
                   height: 40,
                   child: GestureDetector(
                     onTap: () => _adjustAreaRadius(area),
-                    child: Icon(
-                      Icons.location_pin,
-                      color: Colors.red,
-                      size: 25,
-                    ),
                   ),
                 )
               ).toList(),
@@ -696,32 +695,24 @@ void _adjustAreaRadius(AreaOfInterest area) {
               ),
 
               // Card 3: Last Update
-              SizedBox(
-                width: MediaQuery.of(context).size.width * 0.10 * 1,
-                child: Card(
-                  elevation: 4,
-                  color: _isTrackedAnimalVisible ? Colors.green.shade100 : null,
-                  child: InkWell(
-                    onTap: () {
-                      setState(() {
-                        _isTrackedAnimalVisible = !_isTrackedAnimalVisible;
-                      });
-                    },
-                  
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.pets, color: Colors.orange, size: 20),
-                        Text('Zie alle dieren', style: TextStyle(fontSize: 16)),
-                        // Text(DateTime.now().toString().substring(0, 16), style: TextStyle(fontSize: 10)),
-                      ],
-                    ),
-                    ),
-                  ),
-                ),
-              ),
+              // SizedBox(
+              //   width: MediaQuery.of(context).size.width * 0.10 * 1,
+              //   child: Card(
+              //     elevation: 4,
+              //     color: _isTrackedAnimalVisible ? Colors.green.shade100 : null,
+              //     child: Padding(
+              //       padding: const EdgeInsets.all(8.0),
+              //       child: Column(
+              //         mainAxisSize: MainAxisSize.min,
+              //         children: [
+              //           Icon(Icons.pets, color: Colors.orange, size: 20),
+              //           Text('Zie alle dieren', style: TextStyle(fontSize: 16)),
+              //           Text(DateTime.now().toString().substring(0, 16), style: TextStyle(fontSize: 10)),
+              //         ],
+              //       ),
+              //       ),
+              //     ),
+              //   ),
 
               // Card 4: Details
               
@@ -772,6 +763,7 @@ void _adjustAreaRadius(AreaOfInterest area) {
         left: 16,
         right: 16,
         child: Card(
+          margin: EdgeInsets.all(16.0),
           elevation: 4,
           child: Padding(
             padding: const EdgeInsets.all(8.0),
@@ -814,35 +806,6 @@ void _adjustAreaRadius(AreaOfInterest area) {
           ),
         ),
       ),
-    //       Positioned(
-    //   top: 20, // Adjust positioning as needed
-    //   right: 16,
-    //   child: Card(
-    //     child: Padding(
-    //       padding: const EdgeInsets.all(8.0),
-    //       child: StreamBuilder<double>(
-    //         stream: _mapController.mapEventStream
-    //             .map((event) => event.camera.zoom),
-    //         builder: (context, snapshot) {
-    //           if (!snapshot.hasData) return Text('Loading...');
-              
-    //           double zoom = snapshot.data!;
-              
-    //           // Calculate approximate meters per pixel at this zoom level
-    //           double metersPerPixel = 156543.03392 * math.cos(52.370216 * math.pi / 180) / math.pow(2, zoom);
-              
-    //           return Column(
-    //             crossAxisAlignment: CrossAxisAlignment.start,
-    //             children: [
-    //               Text('Zoom Level: ${zoom.toStringAsFixed(2)}'),
-    //               Text('Meters per Pixel: ${metersPerPixel.toStringAsFixed(2)}'),
-    //             ],
-    //           );
-    //         },
-    //       ),
-    //     ),
-    //   ),
-    // ),
     ],
   );
 } // end of widget
