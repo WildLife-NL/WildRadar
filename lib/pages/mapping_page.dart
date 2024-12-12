@@ -115,6 +115,20 @@ final MapController _mapController = MapController();
     });
   }
 
+// Move to the location of the animal
+void _moveMapToLocation(dynamic item) {
+  double lat = item['location']['latitude'] ?? '51.30832';
+  double lon = item['location']['longitude'] ?? '5.65502';
+
+  // Move the map to that location
+  _mapController.move(LatLng(lat, lon), 17.0);
+
+  setState(() {
+    currentPageIndex = 0;
+  });
+
+  _showMarkerDetails(item);
+}
 
 // Add a new method to show animal details
 void _showTrackedAnimalDetails() {
@@ -209,6 +223,7 @@ void _filterAnimals(String query) {
               Text('Locatie:'),
               Text('Latitude: ${item['location']['latitude'] ?? 'Niet beschikbaar'}'),
               Text('Longitude: ${item['location']['longitude'] ?? 'Niet beschikbaar'}'),
+              Text('Laatste update: ${item['locationTimestamp'] ?? 'Niet beschikbaar'}'),
             ],
           ),
         ),
@@ -379,10 +394,7 @@ void _adjustAreaRadius(AreaOfInterest area) {
                   label: 'Meldingen'
                 ),
                 NavigationDestination(
-                  icon: Badge(
-                    label: Text('1'),
-                    child: Icon(Icons.favorite),
-                  ),
+                  icon: Icon(Icons.favorite),
                   label: 'Favorieten',
                 ),
                 NavigationDestination(icon: Icon(Icons.settings), label: 'Instellingen'),
@@ -402,15 +414,42 @@ void _adjustAreaRadius(AreaOfInterest area) {
           : _buildMapWithMarkers(),
 
         // Meldingenpagina met voorbeeldmeldingen
-        const Padding(
+        _isLoading
+        ? Center(child: CircularProgressIndicator())
+        : Padding(
           padding: EdgeInsets.all(8.0),
           child: Column(
             children: <Widget>[
+              if (_data != null && _data!.isNotEmpty)
               Card(
                 child: ListTile(
-                  leading: Icon(Icons.notifications_sharp),
-                  title: Text('Melding 1'),
-                  subtitle: Text('Dit is een melding'),
+                    leading: Image.asset('lib/assets/images/zwijn.png',
+                    width: 150,
+                    height: 150,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(Icons.pets, size: 50);
+                    },
+                  ),
+                  title: Text(
+                    'Melding 1',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _data![18]['name'] ?? 'Onbekend dier',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text('Soort: ${_data![18]['species']['commonName'] ?? 'Niet beschikbaar'}'),
+                      Text('Locatie: ${_data![18]['location']['latitude'] ?? 'Onbekend'}, '
+                                      '${_data![18]['location']['longitude'] ?? 'Onbekend'}'),
+                      Text('Laatste update: ${_data![18]['locationTimestamp'] ?? 'Onbekend'}'),
+                    ],
+                  ),
+                  trailing: Icon(Icons.info_outline),
+                  onTap: () => _moveMapToLocation(_data![18]),
                 ),
               ),
               Card(
@@ -474,7 +513,7 @@ void _adjustAreaRadius(AreaOfInterest area) {
             options: MarkerClusterLayerOptions(
               maxClusterRadius: 120,
               size: Size(50, 50),
-              disableClusteringAtZoom: 10,
+              disableClusteringAtZoom: 16,
               markers: [ 
               ...displayData.map((item) {
                 double lat = item['location']['latitude'] ?? 52.370216;
@@ -646,7 +685,7 @@ void _adjustAreaRadius(AreaOfInterest area) {
                     });
                   },
                   child: Padding(
-                    padding: const EdgeInsets.all(8.0),
+                    padding: const EdgeInsets.all(25.0),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -669,16 +708,23 @@ void _adjustAreaRadius(AreaOfInterest area) {
               // Card 2: Locations
               if(_areasOfInterest.isNotEmpty)
               SizedBox(
-                width: MediaQuery.of(context).size.width * 0.10 * 0.9,
+                width: MediaQuery.of(context).size.width * 0.15 * 0.9,
                 child: Card(
                   elevation: 4,
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.location_on, color: Colors.blue, size: 20),
-                        Text('Gebieden van interesse: ${_areasOfInterest.length}'),
+                        Row(
+                          children: [
+                            Icon(Icons.location_on, color: Colors.blue, size: 20),
+                            SizedBox(width: 8),
+                            Text('Gebieden van interesse: ${_areasOfInterest.length}', style: TextStyle(fontSize: 16)),
+                          ],
+                        ),
+                        SizedBox(height: 21),
                         // Text('${_data?.length ?? 0}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                         ElevatedButton(
                           onPressed: () {

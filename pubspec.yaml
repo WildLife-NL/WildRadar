@@ -34,5 +34,6 @@ flutter:
     - lib/assets/images/bizon.png
     - lib/assets/images/edelhert.jpg
     - lib/assets/images/bos.jpg
+    - lib/assets/images/zwijn.png
     - lib/assets/env/.env
 
