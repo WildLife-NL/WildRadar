@@ -5,6 +5,7 @@ import 'package:wild_radar/services/api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
+import 'package:wildlife_api_connection/models/location.dart';
 
 // Beginpagina van de app - Stateless widget die de basis thema's instelt
 class MappingPage extends StatelessWidget {
@@ -19,6 +20,22 @@ class MappingPage extends StatelessWidget {
     );
   }
 }
+
+// CLASS TO SHOWCASE ANIMALS LOCATION (WILL BE CHANGED AFTER TUESDAY 17 DECEMBER)
+class TrackedAnimal {
+  final String name;
+  final String species;
+  final String commonName;
+  final List<LatLng> locations;
+
+  TrackedAnimal({
+    required this.name,
+    required this.species,
+    required this.commonName,
+    required this.locations,
+  });
+}
+
 
 // New class
   // New class to represent an area of interest
@@ -47,6 +64,11 @@ class NavigationExample extends StatefulWidget {
 class _NavigationExampleState extends State<NavigationExample> {
 
 
+// TRACKED ANIMAL TO SHOWCASE ANIMALS LOCATION (WILL BE CHANGED AFTER TUESDAY 17 DECEMBER)
+TrackedAnimal? _trackedAnimal;
+int _currentlocationIndex = 0;
+bool _isTrackedAnimalVisible = false;
+
 final MapController _mapController = MapController();
 
 
@@ -70,6 +92,18 @@ final MapController _mapController = MapController();
   void initState() {
     super.initState();
     _fetchData(); // Haalt data op zodra de widget wordt geïnitialiseerd
+
+    _trackedAnimal = TrackedAnimal(
+      name: 'Edelhert (Test)', 
+      species: 'Cervus elaphus', 
+      commonName: 'Edelhert', 
+      locations: [
+        // Random places
+        LatLng(52.402285, 4.567020),   
+        LatLng(52.408434, 4.578950),       
+        LatLng(52.401952, 4.585567),      
+        ],
+      );
   }
 
   // Asynchrone functie om data op te halen van de API
@@ -80,6 +114,68 @@ final MapController _mapController = MapController();
       _isLoading = false;
     });
   }
+
+
+// Add a new method to show animal details
+void _showTrackedAnimalDetails() {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return StatefulBuilder(
+        builder: (context, dialogSetState) {
+          return AlertDialog(
+            title: Text('Dier Tracking Details'),
+            content: SingleChildScrollView(
+              child: ListBody(
+                children: <Widget>[
+                  Text('Naam: ${_trackedAnimal!.name}'),
+                  Text('Soort: ${_trackedAnimal!.species}'),
+                  Text('Gemeenschappelijke naam: ${_trackedAnimal!.commonName}'),
+                  SizedBox(height: 10),
+                  Slider(
+                    value: _currentlocationIndex.toDouble(),
+                    min: 0,
+                    max: (_trackedAnimal!.locations.length - 1).toDouble(),
+                    divisions: _trackedAnimal!.locations.length - 1,
+                    label: 'Locatie: ${_currentlocationIndex + 1}',
+                    onChanged: (double value) {
+                      // Use the main widget's setState
+                      setState(() {
+                        _currentlocationIndex = value.toInt();
+                        // Center map to location
+                        _mapController.move(
+                          _trackedAnimal!.locations[_currentlocationIndex],
+                          15.0
+                        );
+                      });
+                      // Update the dialog's local state to refresh the label
+                      dialogSetState(() {});
+                    },
+                  ),
+                  Text(
+                    'Huidige locatie: '
+                    '${_trackedAnimal!.locations[_currentlocationIndex].latitude.toStringAsFixed(4)},'
+                    '${_trackedAnimal!.locations[_currentlocationIndex].longitude.toStringAsFixed(4)}',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: Text('Sluiten'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
 
 void _filterAnimals(String query) {
   setState(() {
@@ -477,6 +573,42 @@ void _adjustAreaRadius(AreaOfInterest area) {
                 )
               ).toList(),
             ),
+          if (_trackedAnimal != null && _currentlocationIndex > 0)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: _trackedAnimal!.locations.sublist(0, _currentlocationIndex + 1),
+                strokeWidth: 4.0,
+                color: Colors.red.withOpacity(0.7),
+              ),
+            ],
+          ),
+          if(_trackedAnimal != null)
+          MarkerLayer(
+            markers: _trackedAnimal!.locations.asMap().entries.map((entry) {
+              int index = entry.key;
+              LatLng location = entry.value;
+              return Marker(
+                point: location,
+                width: 40,
+                height: 40,
+                child: GestureDetector(
+                  onTap: () {
+                    if (index == 0) {
+                      _mapController.move(location, 15.0);
+
+                      _showTrackedAnimalDetails();
+                    }
+                  },
+                  child: Icon(
+                    Icons.pets,
+                    color: index == 0 ? Colors.red : Colors.blue, //Highlight the first location
+                    size: 30,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
           RichAttributionWidget(
             attributions: [
               TextSourceAttribution(
@@ -491,6 +623,8 @@ void _adjustAreaRadius(AreaOfInterest area) {
           ),
         ],
       ),
+      // ADD SLIDER
+      
             // Overlay Cards at the bottom
       Positioned(
         bottom: 16,
@@ -566,6 +700,14 @@ void _adjustAreaRadius(AreaOfInterest area) {
                 width: MediaQuery.of(context).size.width * 0.10 * 1,
                 child: Card(
                   elevation: 4,
+                  color: _isTrackedAnimalVisible ? Colors.green.shade100 : null,
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        _isTrackedAnimalVisible = !_isTrackedAnimalVisible;
+                      });
+                    },
+                  
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Column(
@@ -575,6 +717,7 @@ void _adjustAreaRadius(AreaOfInterest area) {
                         Text('Zie alle dieren', style: TextStyle(fontSize: 16)),
                         // Text(DateTime.now().toString().substring(0, 16), style: TextStyle(fontSize: 10)),
                       ],
+                    ),
                     ),
                   ),
                 ),
@@ -620,6 +763,54 @@ void _adjustAreaRadius(AreaOfInterest area) {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+      if (_trackedAnimal != null && _isTrackedAnimalVisible)
+      Positioned(
+        bottom: 16,
+        left: 16,
+        right: 16,
+        child: Card(
+          elevation: 4,
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Locatie van: ${_trackedAnimal!.name} (${_trackedAnimal!.commonName})',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+                Slider(
+                  value: _currentlocationIndex.toDouble(),
+                  min: 0,
+                  max: (_trackedAnimal!.locations.length - 1).toDouble(),
+                  divisions: _trackedAnimal!.locations.length -1,
+                  label: 'Locatie: ${_currentlocationIndex + 1}',
+                  onChanged: (double value) {
+                    setState(() {
+                      _currentlocationIndex = value.toInt();
+                      //Center map to location
+                      _mapController.move(
+                        _trackedAnimal!.locations[_currentlocationIndex],
+                        15.0
+                      );
+                    });
+                  },
+                ),
+                Text(
+                  'Locatie Details',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+                ),
+                Text(
+                  'Locatie: ${_currentlocationIndex + 1}:'
+                  '${_trackedAnimal!.locations[_currentlocationIndex].latitude.toStringAsFixed(4)},'
+                  '${_trackedAnimal!.locations[_currentlocationIndex].longitude.toStringAsFixed(4)}',
+                  style: TextStyle(fontSize: 10),
+                ),
+              ],
+            ),
           ),
         ),
       ),
