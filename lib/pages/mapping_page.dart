@@ -549,6 +549,36 @@ void _adjustAreaRadius(AreaOfInterest area) {
                 );
               }).toList(),
 
+              if(_trackedAnimal != null)
+        ..._trackedAnimal!.locations.asMap().entries.map((entry) {
+          int index = entry.key;
+          LatLng location = entry.value;
+          return Marker(
+            point: location,
+            width: 40,
+            height: 40,
+            child: GestureDetector(
+              onTap: () {
+                if (index == 0) {
+                  _mapController.move(location, 15.0);
+                  _showTrackedAnimalDetails();
+                }
+              },
+              child: Icon(
+                Icons.pets,
+                color: index == 0 ? Colors.black : Colors.blue,
+                size: 30,
+                shadows: const [
+                  Shadow(
+                    color: Colors.white,
+                    blurRadius: 2.0,
+                  )
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+
               //Area of interest cluster
               ..._areasOfInterest.map((area) =>
                 Marker(
@@ -621,32 +651,6 @@ void _adjustAreaRadius(AreaOfInterest area) {
               ),
             ],
           ),
-          if(_trackedAnimal != null)
-          MarkerLayer(
-            markers: _trackedAnimal!.locations.asMap().entries.map((entry) {
-              int index = entry.key;
-              LatLng location = entry.value;
-              return Marker(
-                point: location,
-                width: 40,
-                height: 40,
-                child: GestureDetector(
-                  onTap: () {
-                    if (index == 0) {
-                      _mapController.move(location, 15.0);
-
-                      _showTrackedAnimalDetails();
-                    }
-                  },
-                  child: Icon(
-                    Icons.pets,
-                    color: index == 0 ? Colors.red : Colors.blue, //Highlight the first location
-                    size: 30,
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
           RichAttributionWidget(
             attributions: [
               TextSourceAttribution(
@@ -708,7 +712,7 @@ void _adjustAreaRadius(AreaOfInterest area) {
               // Card 2: Locations
               if(_areasOfInterest.isNotEmpty)
               SizedBox(
-                width: MediaQuery.of(context).size.width * 0.15 * 0.9,
+                width: MediaQuery.of(context).size.width * 0.25 * 0.9,
                 child: Card(
                   elevation: 4,
                   child: Padding(
