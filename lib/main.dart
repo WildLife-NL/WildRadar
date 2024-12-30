@@ -14,7 +14,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: LoginPage(), //startpagina
+      home: MappingPage(), //startpagina
       routes: {
         '/second': (context) => MappingPage(), //voeg een route toe naar de 2de pagina
       },

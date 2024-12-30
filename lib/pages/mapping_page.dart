@@ -121,10 +121,10 @@ void _moveMapToLocation(dynamic item) {
   double lon = item['location']['longitude'] ?? '5.65502';
 
   // Move the map to that location
-  _mapController.move(LatLng(lat, lon), 17.0);
+  _mapController.move(LatLng(lat, lon), 16.0);
 
   setState(() {
-    currentPageIndex = 0;
+    currentPageIndex = 1;
   });
 
   _showMarkerDetails(item);
@@ -353,6 +353,14 @@ void _adjustAreaRadius(AreaOfInterest area) {
 }
   @override
   Widget build(BuildContext context) {
+
+    // Use _filteredData if it's not empty, otherwise use the original _data
+    var displayData = _filteredData.isNotEmpty ? _filteredData : _data;
+
+    if (displayData == null || displayData.isEmpty) {
+      return Center(child: Text('Geen dierlocaties beschikbaar'));
+    }
+
     // final ThemeData theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
@@ -416,54 +424,195 @@ void _adjustAreaRadius(AreaOfInterest area) {
         // Meldingenpagina met voorbeeldmeldingen
         _isLoading
         ? Center(child: CircularProgressIndicator())
-        : Padding(
-          padding: EdgeInsets.all(8.0),
-          child: Column(
-            children: <Widget>[
-              if (_data != null && _data!.isNotEmpty)
-              Card(
-                child: ListTile(
-                    leading: Image.asset('lib/assets/images/zwijn.png',
-                    width: 150,
-                    height: 150,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Icon(Icons.pets, size: 50);
-                    },
-                  ),
-                  title: Text(
-                    'Melding 1',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _data![18]['name'] ?? 'Onbekend dier',
+        : Row(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(50.0),
+                child: Column(
+                  children: <Widget>[
+                    if (_data != null && _data!.isNotEmpty)
+                    Card(
+                      child: ListTile(
+                        leading: Image.asset('lib/assets/images/zwijn.png',
+                        width: 150,
+                        height: 150,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(Icons.pets, size: 50);
+                        },
+                      ),
+                      title: Text(
+                        'Melding 1',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      Text('Soort: ${_data![18]['species']['commonName'] ?? 'Niet beschikbaar'}'),
-                      Text('Locatie: ${_data![18]['location']['latitude'] ?? 'Onbekend'}, '
-                                      '${_data![18]['location']['longitude'] ?? 'Onbekend'}'),
-                      Text('Laatste update: ${_data![18]['locationTimestamp'] ?? 'Onbekend'}'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _data![18]['name'] ?? 'Onbekend dier',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Text('Soort: ${_data![18]['species']['commonName'] ?? 'Niet beschikbaar'}'),
+                          Text('Locatie: ${_data![18]['location']['latitude'] ?? 'Onbekend'}, '
+                          '${_data![18]['location']['longitude'] ?? 'Onbekend'}'),
+                          Text('Laatste update: ${_data![18]['locationTimestamp'] ?? 'Onbekend'}'),
+                        ],
+                      ),
+                      trailing: Icon(Icons.info_outline),
+                      onTap: () => _moveMapToLocation(_data![18]),
+                    ),
+                  ),
+                  Card(
+                      child: ListTile(
+                        leading: Image.asset('lib/assets/images/zwijn.png',
+                        width: 150,
+                        height: 150,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(Icons.pets, size: 50);
+                        },
+                      ),
+                      title: Text(
+                        'Melding 1',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _data![17]['name'] ?? 'Onbekend dier',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Text('Soort: ${_data![17]['species']['commonName'] ?? 'Niet beschikbaar'}'),
+                          Text('Locatie: ${_data![17]['location']['latitude'] ?? 'Onbekend'}, '
+                          '${_data![17]['location']['longitude'] ?? 'Onbekend'}'),
+                          Text('Laatste update: ${_data![17]['locationTimestamp'] ?? 'Onbekend'}'),
+                        ],
+                      ),
+                      trailing: Icon(Icons.info_outline),
+                      onTap: () => _moveMapToLocation(_data![17]),
+                    ),
+                  ),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: FlutterMap(
+                mapController: _mapController,
+                options: MapOptions(
+                  initialCenter: LatLng(52.370216, 4.895168),
+                  initialZoom: 7.5,
+                  minZoom: 7.5,
+                  maxZoom: 18.0,
+                  cameraConstraint: CameraConstraint.containCenter(
+                    bounds: LatLngBounds(
+                      LatLng(50.5, 3.5),
+                      LatLng(53.8, 7.2),
+                    ),
+                  ),
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate: _isSatelliteView
+                    ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                    : "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                    tileProvider: CancellableNetworkTileProvider(),
+                    userAgentPackageName: 'com.example.app',
+                  ),
+                  RichAttributionWidget(
+                    attributions: [
+                      TextSourceAttribution(
+                        'OpenStreetMap contributors',
+                        onTap: () => launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
+                      ),
+                      TextSourceAttribution(
+                        'Sources: Esri, DigitalGlobe, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and the GIS User Community',
+                        onTap: () => launchUrl(Uri.parse('https://www.esri.com/')),
+                      )
                     ],
                   ),
-                  trailing: Icon(Icons.info_outline),
-                  onTap: () => _moveMapToLocation(_data![18]),
-                ),
-              ),
-              Card(
-                child: ListTile(
-                  leading: Icon(Icons.notifications_sharp),
-                  title: Text('Melding 2'),
-                  subtitle: Text('Dit is nog een melding'),
-                ),
-              ),
-            ],
-          ),
-        ),
+                  // Map attributions (things on the map)
+                  Positioned(
+                    left: 10,
+                    child: Scalebar(
+                      lineColor: Colors.black,
+                      textStyle: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+                      padding: EdgeInsets.all(10),
+                      length: ScalebarLength.l,
+                    ),
+                  ),
+                  MarkerClusterLayerWidget(
+                    options: MarkerClusterLayerOptions(
+                      maxClusterRadius: 120,
+                      size: Size(50, 50),
+                      disableClusteringAtZoom: 16,
+                      markers: [ 
+                      ...displayData.asMap().entries.where((entry) {
+                        int index = entry.key;
+                        return index == 16 || index == 17;
+                      }).map((entry) {
+                        var item = entry.value;
+                        double lat = item['location']['latitude'] ?? 52.370216;
+                        double lon = item['location']['longitude'] ?? 4.895168;
+                        return Marker(
+                          point: LatLng(lat, lon),
+                          width: 50,
+                          height: 50,
+                          child: GestureDetector(
+                            onTap: () {
+                              _showMarkerDetails(item);
+                            },
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.pets,
+                                  color: Colors.green,
+                                  size: 40,
+                                ),
+                                FittedBox(
+                                  child: Text(
+                                    item['species']['commonName'] ?? 'onbekend',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(), 
 
-        Center(child: Text('Favorieten pagina')),
+                      //Area of interest cluster
+                      ],
+                      builder: (context, markers) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.7),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Text(
+                              markers.length.toString(),
+                              style: TextStyle(
+                                color: Colors.white, 
+                                fontWeight: FontWeight.bold
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        Center(child: Text('favorieten Pagina')),
         Center(child: Text('Instellingen Pagina')),
         Center(child: Text('Over pagina')),
         Center(child: Text('Profiel pagina')),
@@ -508,7 +657,15 @@ void _adjustAreaRadius(AreaOfInterest area) {
           tileProvider: CancellableNetworkTileProvider(),
           userAgentPackageName: 'com.example.app',
         ),
-
+        Positioned(
+          left: 10,
+          child:Scalebar(
+              lineColor: Colors.black,
+              textStyle: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+              padding: EdgeInsets.all(10),
+              length: ScalebarLength.l,
+          ),
+        ),
           MarkerClusterLayerWidget(
             options: MarkerClusterLayerOptions(
               maxClusterRadius: 120,
