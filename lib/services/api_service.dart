@@ -31,20 +31,23 @@ Future<Map<String, dynamic>> login(String email) async {
 }
 
 
-// Fetch animal locations
+// Future is hierbij iets wat je nog op moet halen (toekomst dus)
 Future<List<dynamic>> fetchAnimalLocations() async {
   try {
+    // wacht de response af en vraag alles van de url die hierboven staat +/animals
     final response = await http.get(
       Uri.parse('$_baseUrl/animals'),
+      // geef als header een token mee zodat dit als check kan worden gedaan
       headers: {
         'Authorization': 'Bearer $_token',
         'Content-Type': 'application/json',
       }
     );
-
+    //als de response goed is dan krijg de dieren in json
     if (response.statusCode == 200) {
       return json.decode(response.body);
     } else {
+      //anders een foutmelding
       throw Exception('Kan geen dieren locaties ophalen: ${response.statusCode}');
     }
   } catch (e) {

@@ -14,26 +14,26 @@ class _AuthPageState extends State<AuthPage> {
 //Formkey for valudation of the 6 number code
 final _codeFormKey = GlobalKey<FormState>();
 
-//Make a list of text controllers for the 6 digit code
+//Maak een lijst voor text controllers voor de 6-cijferige code
 final List<TextEditingController> _controllers =
   List.generate(6, (_) => TextEditingController());
 
-//Make a list of focues nodes to manage the imput focus between boxes (highlighting)
+//Maak een lijst waardoor de imputvelden een focus krijgen
 final List<FocusNode> _focusNodes=
   List.generate(6, (_) => FocusNode());
 
-//Function for login (later 6 digit code)
+//Functie voor login (later 6-cijferige code)
 void _login() {
-  // if the _codeformkey his current state is set to validate then...
+  // Als de _codeformkey in zijn huidige status is gezet tot valideren dan...
   if (_codeFormKey.currentState!.validate()) {
-    //(room for api)
+    //(ruimte voor api)
     final code = _controllers.map((controller) => controller.text).join();
     print('Code: $code');
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => MappingPage()),
     );
-    //IF validation is wrong...
+    //Als de validatie verkeerd is
   } else {
     print('Fout bij inloggen!');
   }

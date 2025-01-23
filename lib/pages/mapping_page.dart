@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:wildlife_api_connection/models/location.dart';
+import 'package:intl/intl.dart';
 
 // Beginpagina van de app - Stateless widget die de basis thema's instelt
 class MappingPage extends StatelessWidget {
@@ -223,7 +224,10 @@ void _filterAnimals(String query) {
               Text('Locatie:'),
               Text('Latitude: ${item['location']['latitude'] ?? 'Niet beschikbaar'}'),
               Text('Longitude: ${item['location']['longitude'] ?? 'Niet beschikbaar'}'),
-              Text('Laatste update: ${item['locationTimestamp'] ?? 'Niet beschikbaar'}'),
+              Text('Laatste update: ${item['locationTimestamp'] != null 
+              ? DateFormat('dd-MM-yyyy HH:mm').format(DateTime.parse(item['locationTimestamp']))
+              : 'Niet beschikbaar'}'
+              ),
             ],
           ),
         ),
@@ -246,15 +250,18 @@ void _onMapTapped(TapPosition tapPosition, LatLng point) {
   showDialog(
     context: context,
     builder: (BuildContext context) {
+      // De intiële radius = 1.0 wat 1 kilometer betekend
       double initialRadius = 1.0;
       return StatefulBuilder(
         builder: (context, setState) {
+          // Hierbij volgt een dialoog box waarbij er opties worden getoond
           return AlertDialog(
             title: Text('Plaats een marker'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('Wilt u een marker plaatsen op deze locatie?'),
+                // De slider geeft de kans om zelf een waarde te kunnen invullen
                 Slider(
                   value: initialRadius,
                   min: 0.1,
@@ -263,6 +270,7 @@ void _onMapTapped(TapPosition tapPosition, LatLng point) {
                   label: '${initialRadius.toStringAsFixed(1)} km',
                   onChanged: (double value) {
                     setState(() {
+                      // veranderd de radius naar de waarde die de gebruiker heeft ingevuld
                       initialRadius = value;
                     });
                   },
@@ -280,7 +288,7 @@ void _onMapTapped(TapPosition tapPosition, LatLng point) {
               TextButton(
                 child: Text('Toevoegen'),
                  onPressed: () {
-                  // Ensure the main widget state is updated
+                  // zorgt ervoor dat de widget wordt geupdate
                   this.setState(() {
                     _areasOfInterest.add(AreaOfInterest(
                       location: point, 
@@ -439,7 +447,7 @@ void _adjustAreaRadius(AreaOfInterest area) {
                         height: 150,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
-                          return Icon(Icons.pets, size: 50);
+                          return Icon(Icons.pets, size: 25);
                         },
                       ),
                       title: Text(
@@ -456,7 +464,11 @@ void _adjustAreaRadius(AreaOfInterest area) {
                           Text('Soort: ${_data![18]['species']['commonName'] ?? 'Niet beschikbaar'}'),
                           Text('Locatie: ${_data![18]['location']['latitude'] ?? 'Onbekend'}, '
                           '${_data![18]['location']['longitude'] ?? 'Onbekend'}'),
-                          Text('Laatste update: ${_data![18]['locationTimestamp'] ?? 'Onbekend'}'),
+                          Text(
+                            'Laatste update: ${_data![18]['locationTimestamp'] != null
+                            ? DateFormat('dd-MM-yyyy HH:mm').format(DateTime.parse(_data![18]['locationTimestamp']))
+                            : 'Onbekend'}'
+                            ),
                         ],
                       ),
                       trailing: Icon(Icons.info_outline),
@@ -470,11 +482,11 @@ void _adjustAreaRadius(AreaOfInterest area) {
                         height: 150,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
-                          return Icon(Icons.pets, size: 50);
+                          return Icon(Icons.pets, size: 25);
                         },
                       ),
                       title: Text(
-                        'Melding 1',
+                        'Melding 2',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Column(
@@ -487,7 +499,11 @@ void _adjustAreaRadius(AreaOfInterest area) {
                           Text('Soort: ${_data![17]['species']['commonName'] ?? 'Niet beschikbaar'}'),
                           Text('Locatie: ${_data![17]['location']['latitude'] ?? 'Onbekend'}, '
                           '${_data![17]['location']['longitude'] ?? 'Onbekend'}'),
-                          Text('Laatste update: ${_data![17]['locationTimestamp'] ?? 'Onbekend'}'),
+                          Text(
+                            'Laatste update: ${_data![17]['locationTimestamp'] != null
+                            ? DateFormat('dd-MM-yyyy HH:mm').format(DateTime.parse(_data![18]['locationTimestamp']))
+                            : 'Onbekend'}'
+                            ),
                         ],
                       ),
                       trailing: Icon(Icons.info_outline),
@@ -543,6 +559,32 @@ void _adjustAreaRadius(AreaOfInterest area) {
                       length: ScalebarLength.l,
                     ),
                   ),
+                  CircleLayer(
+                    circles: [
+                      CircleMarker(
+                        point: LatLng(51.307352, 5.658018), 
+                        radius: 350,
+                        useRadiusInMeter: true,
+                        color: Colors.blue.withOpacity(0.2),
+                        borderColor: Colors.blue,
+                        borderStrokeWidth: 3,
+                      ),
+                    ],
+                  ),
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: LatLng(51.307352, 5.658018), 
+                        width: 40,
+                        height: 40,
+                        child: Icon(
+                          Icons.location_pin,
+                          color: Colors.red,
+                          size: 50,
+                        ),
+                      ),
+                    ],
+                  ),
                   MarkerClusterLayerWidget(
                     options: MarkerClusterLayerOptions(
                       maxClusterRadius: 120,
@@ -569,13 +611,13 @@ void _adjustAreaRadius(AreaOfInterest area) {
                                 Icon(
                                   Icons.pets,
                                   color: Colors.green,
-                                  size: 40,
+                                  size: 30,
                                 ),
                                 FittedBox(
                                   child: Text(
                                     item['species']['commonName'] ?? 'onbekend',
                                     style: TextStyle(
-                                      fontSize: 16,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.bold
                                     ),
                                   ),
@@ -774,6 +816,7 @@ void _adjustAreaRadius(AreaOfInterest area) {
           ),
 
           CircleLayer(
+            // pakt de locatie die is meegegeven vanuit AreaOfInterest()
             circles: _areasOfInterest.map((area) {
               return CircleMarker(
                 point: area.location,
@@ -838,8 +881,8 @@ void _adjustAreaRadius(AreaOfInterest area) {
               width: MediaQuery.of(context).size.width * 0.10 * 0.9,
               child: Card(
                 elevation: 4,
-                color: _isSatelliteView ? Colors.green.shade100 : null, // Optional visual indication
-                child: InkWell( // Use InkWell for tap effects
+                color: _isSatelliteView ? Colors.green.shade100 : null, // visuele interactie (licht op)
+                child: InkWell( // gebruik InkWell voor tap effecten
                   onTap: () {
                     setState(() {
                       _isSatelliteView = !_isSatelliteView;
@@ -942,6 +985,7 @@ void _adjustAreaRadius(AreaOfInterest area) {
                         ),
                         SizedBox(height: 8),
                         TextField(
+                          // Heeft een _searchcontroller die er voor zorgt dat het woord mee kan worden gegeven
                           controller: _searchController,
                           decoration: InputDecoration(
                             hintText: 'Zoek op soort of naam',
@@ -952,6 +996,7 @@ void _adjustAreaRadius(AreaOfInterest area) {
                             contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 10),
                           ),
                           onChanged: (value) {
+                            //roept _filterAnimals aan waarbij de functie gaat filteren
                             _filterAnimals(value);
                           },
                         ),

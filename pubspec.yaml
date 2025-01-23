@@ -21,6 +21,7 @@ dependencies:
     git:
       url: https://github.com/WildLife-NL/Wildlife-api-connection.git
       ref: "94d125c"
+  intl: ^0.19.0
 
 dev_dependencies:
   flutter_test:
